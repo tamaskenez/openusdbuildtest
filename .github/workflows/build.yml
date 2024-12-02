@@ -1,0 +1,33 @@
+name: Build
+on:
+  push:
+  workflow_dispatch:
+
+# Allow only a single workflow running on the same PR or branch
+concurrency:
+  # github.workflow: name of the workflow
+  # github.event.pull_request.number || github.ref: pull request number or branch name if not a pull request
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build-windows:
+    runs-on: windows-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Enable Developer Command Prompt for Ninja
+        if: matrix.os == 'windows'
+        uses: ilammy/msvc-dev-cmd@v1.13.0
+      - name: Build
+        shell: bash
+        run: |
+          git clone https://github.com/tamaskenez/OpenUSD.git --depth=1 --branch=relocatable_config_with_tbb_opensubdiv
+          python3 ./OpenUSD/build_scripts/build_usd.py \
+            --build ${PWD}/OpenUSD/b \
+              --ignore-homebrew \
+              --force-all \
+              --src ${PWD}/OpenUSD/s \
+              --no-python \
+              --no-materialx \
+              ${PWD}/OpenUSD/original_openusd_install
